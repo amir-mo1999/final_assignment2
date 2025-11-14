@@ -7,7 +7,8 @@ wheels/
 *.egg-info
 .idea/
 gymhero/
-.env
+agent/.env
+
 
 # Virtual environments
 .venv
