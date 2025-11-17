@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: coding-assistant-db
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: coding_assistant
+      POSTGRES_USER: assistant_user
+      POSTGRES_PASSWORD: assistant_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/:/docker-entrypoint-initdb.d/
+    networks:
+      - coding-assistant-net
+
+volumes:
+  postgres_data:
+
+networks:
+  coding-assistant-net:
+    driver: bridge
