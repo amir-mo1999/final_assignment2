@@ -2,6 +2,7 @@
 from langchain_core.messages import HumanMessage
 from core.graph import build_graph
 
+
 def run_cli():
     graph = build_graph()
     messages = []
