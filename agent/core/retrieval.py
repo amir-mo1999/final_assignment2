@@ -9,7 +9,7 @@ from typing import Iterable, List
 from psycopg.rows import dict_row
 
 from agent.core.db import get_connection
-from agent.core.embeddings import get_embeddings
+from scripts.ingestion.embeddings import get_embeddings
 
 
 @dataclass
@@ -82,10 +82,10 @@ def similarity_search(query: str, limit: int = 5) -> RetrievalResult:
 
     clause, params = _format_file_filter_clause(processed.file_filters)
     sql = (
-        "SELECT file_path, file_name, file_extension, chunk_index, total_chunks, "
-        "token_count, content "
-        "FROM code_embeddings "
-        "WHERE 1=1" + clause + " ORDER BY embedding <=> %s LIMIT %s"
+            "SELECT file_path, file_name, file_extension, chunk_index, total_chunks, "
+            "token_count, content "
+            "FROM code_embeddings "
+            "WHERE 1=1" + clause + " ORDER BY embedding <=> %s LIMIT %s"
     )
 
     chunks: List[dict] = []

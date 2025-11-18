@@ -7,7 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from agent.core.ingestion import ingest_python_repository
+from scripts.ingestion.ingestion import ingest_python_repository
 
 
 def parse_args() -> argparse.Namespace:

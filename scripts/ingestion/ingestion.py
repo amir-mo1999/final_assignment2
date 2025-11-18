@@ -13,7 +13,7 @@ from psycopg import Connection
 from psycopg.rows import dict_row
 
 from agent.core.db import get_connection
-from agent.core.embeddings import get_embeddings
+from scripts.ingestion.embeddings import get_embeddings
 
 _ENCODER = tiktoken.get_encoding("cl100k_base")
 _EXCLUDED_DIRS = {".git", "__pycache__", ".venv", "venv"}
@@ -44,7 +44,7 @@ def _node_source(content: str, node: ast.AST) -> str:
     if not hasattr(node, "lineno") or not hasattr(node, "end_lineno"):
         return content
     lines = content.splitlines()
-    snippet = lines[node.lineno - 1 : node.end_lineno]
+    snippet = lines[node.lineno - 1: node.end_lineno]
     return "\n".join(snippet).strip()
 
 
