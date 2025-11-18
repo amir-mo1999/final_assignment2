@@ -3,6 +3,9 @@ from __future__ import annotations
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv(verbose=True)
 
 
 class Settings(BaseSettings):
