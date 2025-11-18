@@ -1,22 +1,31 @@
-"""Python-specific ingestion pipeline."""
+import argparse
 
-from __future__ import annotations
+from dotenv import load_dotenv
 
 import ast
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
+from langchain_openai import OpenAIEmbeddings
+from psycopg2.extras import RealDictCursor
 
+from agent.config import settings
 import tiktoken
-from psycopg import Connection
-from psycopg.rows import dict_row
 
 from agent.core.db import get_connection
-from scripts.ingestion.embeddings import get_embeddings
 
 _ENCODER = tiktoken.get_encoding("cl100k_base")
 _EXCLUDED_DIRS = {".git", "__pycache__", ".venv", "venv"}
+
+
+def get_embeddings() -> OpenAIEmbeddings:
+    """Return a cached OpenAI embeddings client."""
+
+    return OpenAIEmbeddings(
+        model=settings.embeddings_model,
+        api_key=settings.openai_api_key,
+    )
 
 
 @dataclass
@@ -106,8 +115,8 @@ def _iter_python_files(repo_root: Path) -> Iterable[Path]:
             yield path
 
 
-def _chunk_exists(conn: Connection, content_hash: str) -> bool:
-    with conn.cursor(row_factory=dict_row) as cur:
+def _chunk_exists(conn, content_hash: str) -> bool:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             "SELECT 1 FROM code_embeddings WHERE content_hash = %s",
             (content_hash,),
@@ -115,7 +124,7 @@ def _chunk_exists(conn: Connection, content_hash: str) -> bool:
         return cur.fetchone() is not None
 
 
-def _insert_chunk(conn: Connection, chunk: CodeChunk, embedding: List[float]) -> None:
+def _insert_chunk(conn, chunk: CodeChunk, embedding: List[float]) -> None:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -180,3 +189,30 @@ def ingest_python_repository(repo_root: Path) -> dict:
         "chunks_inserted": inserted_chunks,
         "chunks_skipped": skipped_chunks,
     }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Ingest a Python repository into pgvector"
+    )
+    parser.add_argument(
+        "--repo-path",
+        type=Path,
+        required=True,
+        help="Path to the Python repository that should be ingested",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    load_dotenv()
+    args = parse_args()
+    stats = ingest_python_repository(args.repo_path)
+    print("Ingestion complete:")
+    print(f"  Files processed: {stats['files_processed']}")
+    print(f"  Chunks inserted: {stats['chunks_inserted']}")
+    print(f"  Chunks skipped: {stats['chunks_skipped']}")
+
+
+if __name__ == "__main__":
+    main()

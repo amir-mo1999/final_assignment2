@@ -20,13 +20,13 @@ class Settings(BaseSettings):
 
     # Postgres
     postgres_host: str = "localhost"
-    postgres_port: int = 5432
+    postgres_port: int = 5433
     postgres_user: str = "assistant_user"
     postgres_password: str = "assistant_pass"
     postgres_db: str = "coding_assistant"
 
     # Langfuse
-    langfuse_host: Optional[str] = None
+    langfuse_host: Optional[str] = "localhost"
     langfuse_public_key: Optional[str] = None
     langfuse_secret_key: Optional[str] = None
     langfuse_session_id: str = "local-cli"

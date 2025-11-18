@@ -3,7 +3,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: coding-assistant-db
     ports:
-      - 5432:5432
+      - 5433:5432
     environment:
       POSTGRES_DB: coding_assistant
       POSTGRES_USER: assistant_user

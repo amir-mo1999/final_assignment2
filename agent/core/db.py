@@ -3,21 +3,18 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Iterator
 
-import psycopg
-from pgvector.psycopg import register_vector
-
+import psycopg2
+from pgvector.psycopg2 import register_vector
 from agent.config import settings
 
 
 @contextmanager
-def get_connection() -> Iterator[psycopg.Connection]:
-    """Yield a Postgres connection with pgvector registered."""
-
-    conn = psycopg.connect(settings.postgres_dsn, autocommit=True)
+def get_connection():
+    """Yield a Postgres connection using psycopg2 with pgvector adapter."""
+    conn = psycopg2.connect(settings.postgres_dsn)
+    register_vector(conn)
     try:
-        register_vector(conn)
         yield conn
     finally:
         conn.close()

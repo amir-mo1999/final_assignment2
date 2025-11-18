@@ -34,11 +34,11 @@ def retrieval_node(state: State) -> State:
         return {"retrieved_context": [], "guardrail_message": FALLBACK_MESSAGE}
 
     try:
-        ensure_supported_query(user_message.content)
+        ensure_supported_query(str(user_message.content))
     except GuardrailViolation as exc:
         return {"retrieved_context": [], "guardrail_message": str(exc)}
 
-    result = similarity_search(user_message.content)
+    result = similarity_search(str(user_message.content))
     if result.error:
         return {"retrieved_context": [], "guardrail_message": result.error}
 
@@ -89,11 +89,11 @@ def chat_node(state: State) -> State:
         ]
         response = _llm.invoke(prompt_messages)
         response_text = (
-            response.content if isinstance(response, AIMessage) else str(response)
+            str(response.content) if isinstance(response, AIMessage) else str(response)
         )
 
     _telemetry.log_interaction(
-        user_query=user_message.content if user_message else "",
+        user_query=str(user_message.content) if user_message else "",
         response=response_text,
         retrieved_context=context,
         error=guardrail_message,

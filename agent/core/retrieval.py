@@ -6,10 +6,21 @@ import re
 from dataclasses import dataclass
 from typing import Iterable, List
 
-from psycopg.rows import dict_row
+from pgvector import Vector
+from psycopg2.extras import RealDictCursor
 
 from agent.core.db import get_connection
-from scripts.ingestion.embeddings import get_embeddings
+from langchain_openai import OpenAIEmbeddings
+from agent.config import settings
+
+
+def get_embeddings() -> OpenAIEmbeddings:
+    """Return a cached OpenAI embeddings client."""
+
+    return OpenAIEmbeddings(
+        model=settings.embeddings_model,
+        api_key=settings.openai_api_key,
+    )
 
 
 @dataclass
@@ -92,8 +103,8 @@ def similarity_search(query: str, limit: int = 5) -> RetrievalResult:
 
     chunks: List[dict] = []
     with get_connection() as conn:
-        with conn.cursor(row_factory=dict_row) as cur:
-            cur.execute(sql, (*params, embedding, limit))
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(sql, (*params, Vector(embedding), limit))
             for row in cur.fetchall():
                 chunks.append(
                     {
