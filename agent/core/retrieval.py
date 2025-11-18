@@ -1,0 +1,108 @@
+"""Vector search helpers backed by Postgres + pgvector."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from typing import Iterable, List
+
+from psycopg.rows import dict_row
+
+from agent.core.db import get_connection
+from agent.core.embeddings import get_embeddings
+
+
+@dataclass
+class PreprocessedQuery:
+    original: str
+    cleaned: str
+    file_filters: List[str]
+
+
+@dataclass
+class RetrievalResult:
+    chunks: List[dict]
+    processed_query: str
+    error: str | None = None
+
+
+_FILE_MENTION_PATTERN = re.compile(r"[\w./-]+\.py")
+_NOISE_PHRASES = [
+    "please",
+    "could you",
+    "would you",
+    "can you",
+    "tell me",
+    "explain",
+]
+
+
+def preprocess_query(query: str) -> PreprocessedQuery:
+    """Normalize input text and extract metadata filters."""
+
+    lowered = query.lower().strip()
+    cleaned = lowered
+    for phrase in _NOISE_PHRASES:
+        cleaned = cleaned.replace(phrase, "")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    file_matches = [match.group(0) for match in _FILE_MENTION_PATTERN.finditer(query)]
+    return PreprocessedQuery(original=query, cleaned=cleaned, file_filters=file_matches)
+
+
+def _format_file_filter_clause(file_filters: Iterable[str]) -> tuple[str, list]:
+    filters = list({path.strip() for path in file_filters if path.strip()})
+    if not filters:
+        return "", []
+
+    conditions: list[str] = []
+    params: list[str] = []
+    for file_value in filters:
+        if "/" in file_value:
+            conditions.append("file_path ILIKE %s")
+            params.append(f"%{file_value}%")
+        else:
+            conditions.append("file_name ILIKE %s")
+            params.append(f"%{file_value}%")
+
+    clause = " AND (" + " OR ".join(conditions) + ")"
+    return clause, params
+
+
+def similarity_search(query: str, limit: int = 5) -> RetrievalResult:
+    """Execute a similarity search over the code embeddings table."""
+
+    processed = preprocess_query(query)
+    if not processed.cleaned:
+        return RetrievalResult([], processed.cleaned, error="I could not understand that query.")
+
+    try:
+        embedding = get_embeddings().embed_query(processed.cleaned)
+    except Exception as exc:  # pragma: no cover - depends on OpenAI
+        return RetrievalResult([], processed.cleaned, error=str(exc))
+
+    clause, params = _format_file_filter_clause(processed.file_filters)
+    sql = (
+        "SELECT file_path, file_name, file_extension, chunk_index, total_chunks, "
+        "token_count, content "
+        "FROM code_embeddings "
+        "WHERE 1=1" + clause + " ORDER BY embedding <=> %s LIMIT %s"
+    )
+
+    chunks: List[dict] = []
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(sql, (*params, embedding, limit))
+            for row in cur.fetchall():
+                chunks.append(
+                    {
+                        "file_path": row["file_path"],
+                        "file_name": row["file_name"],
+                        "file_extension": row["file_extension"],
+                        "chunk_index": row["chunk_index"],
+                        "total_chunks": row["total_chunks"],
+                        "token_count": row["token_count"],
+                        "content": row["content"],
+                    }
+                )
+
+    return RetrievalResult(chunks=chunks, processed_query=processed.cleaned)
