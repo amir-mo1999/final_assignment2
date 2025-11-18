@@ -6,7 +6,11 @@ from typing import List
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from agent.core.guardrails import FALLBACK_MESSAGE, GuardrailViolation, ensure_supported_query
+from agent.core.guardrails import (
+    FALLBACK_MESSAGE,
+    GuardrailViolation,
+    ensure_supported_query,
+)
 from agent.core.llm import get_llm
 from agent.core.retrieval import similarity_search
 from agent.core.state import State
@@ -84,7 +88,9 @@ def chat_node(state: State) -> State:
             ),
         ]
         response = _llm.invoke(prompt_messages)
-        response_text = response.content if isinstance(response, AIMessage) else str(response)
+        response_text = (
+            response.content if isinstance(response, AIMessage) else str(response)
+        )
 
     _telemetry.log_interaction(
         user_query=user_message.content if user_message else "",

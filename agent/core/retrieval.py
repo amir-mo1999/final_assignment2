@@ -73,7 +73,9 @@ def similarity_search(query: str, limit: int = 5) -> RetrievalResult:
 
     processed = preprocess_query(query)
     if not processed.cleaned:
-        return RetrievalResult([], processed.cleaned, error="I could not understand that query.")
+        return RetrievalResult(
+            [], processed.cleaned, error="I could not understand that query."
+        )
 
     try:
         embedding = get_embeddings().embed_query(processed.cleaned)
@@ -82,10 +84,10 @@ def similarity_search(query: str, limit: int = 5) -> RetrievalResult:
 
     clause, params = _format_file_filter_clause(processed.file_filters)
     sql = (
-            "SELECT file_path, file_name, file_extension, chunk_index, total_chunks, "
-            "token_count, content "
-            "FROM code_embeddings "
-            "WHERE 1=1" + clause + " ORDER BY embedding <=> %s LIMIT %s"
+        "SELECT file_path, file_name, file_extension, chunk_index, total_chunks, "
+        "token_count, content "
+        "FROM code_embeddings "
+        "WHERE 1=1" + clause + " ORDER BY embedding <=> %s LIMIT %s"
     )
 
     chunks: List[dict] = []

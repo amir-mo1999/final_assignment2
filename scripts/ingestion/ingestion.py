@@ -44,7 +44,7 @@ def _node_source(content: str, node: ast.AST) -> str:
     if not hasattr(node, "lineno") or not hasattr(node, "end_lineno"):
         return content
     lines = content.splitlines()
-    snippet = lines[node.lineno - 1: node.end_lineno]
+    snippet = lines[node.lineno - 1 : node.end_lineno]
     return "\n".join(snippet).strip()
 
 
@@ -165,7 +165,9 @@ def ingest_python_repository(repo_root: Path) -> dict:
             chunks = chunk_python_file(file_path, repo_root)
             if not chunks:
                 continue
-            vectors = embedding_client.embed_documents([chunk.content for chunk in chunks])
+            vectors = embedding_client.embed_documents(
+                [chunk.content for chunk in chunks]
+            )
             for chunk, vector in zip(chunks, vectors):
                 if _chunk_exists(conn, chunk.content_hash):
                     skipped_chunks += 1

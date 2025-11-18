@@ -7,6 +7,7 @@ from textwrap import shorten
 from langchain_core.messages import HumanMessage
 
 from agent.core.graph import build_graph
+from agent.core.state import State
 
 
 def _format_preview(content: str) -> str:
@@ -23,7 +24,9 @@ def _print_context(chunks: list[dict]) -> None:
         return
     for chunk in chunks:
         preview = _format_preview(chunk["content"])
-        location = f"{chunk['file_path']} [{chunk['chunk_index'] + 1}/{chunk['total_chunks']}]"
+        location = (
+            f"{chunk['file_path']} [{chunk['chunk_index'] + 1}/{chunk['total_chunks']}]"
+        )
         print(f"  - {location}: {preview}")
 
 
@@ -41,7 +44,7 @@ def run_cli() -> None:
             continue
 
         messages.append(HumanMessage(content=user_input))
-        state = {
+        state: State = {
             "messages": messages,
             "retrieved_context": [],
             "guardrail_message": None,

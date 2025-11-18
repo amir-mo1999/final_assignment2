@@ -11,7 +11,9 @@ from scripts.ingestion.ingestion import ingest_python_repository
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Ingest a Python repository into pgvector")
+    parser = argparse.ArgumentParser(
+        description="Ingest a Python repository into pgvector"
+    )
     parser.add_argument(
         "--repo-path",
         type=Path,
