@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 from dotenv import load_dotenv
 
-load_dotenv(verbose=True)
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     postgres_db: str = "coding_assistant"
 
     # Langfuse
-    langfuse_host: Optional[str] = "localhost"
+    langfuse_base_url: Optional[str] = "http://localhost:3000"
     langfuse_public_key: Optional[str] = None
     langfuse_secret_key: Optional[str] = None
     langfuse_session_id: str = "local-cli"

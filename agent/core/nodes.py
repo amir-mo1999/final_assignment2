@@ -14,10 +14,8 @@ from agent.core.guardrails import (
 from agent.core.llm import get_llm
 from agent.core.retrieval import similarity_search
 from agent.core.state import State
-from agent.core.telemetry import get_telemetry_client
 
 _llm = get_llm()
-_telemetry = get_telemetry_client()
 
 
 def _last_user_message(messages: List) -> HumanMessage | None:
@@ -91,13 +89,6 @@ def chat_node(state: State) -> State:
         response_text = (
             str(response.content) if isinstance(response, AIMessage) else str(response)
         )
-
-    _telemetry.log_interaction(
-        user_query=str(user_message.content) if user_message else "",
-        response=response_text,
-        retrieved_context=context,
-        error=guardrail_message,
-    )
 
     return {
         "messages": [AIMessage(content=response_text)],

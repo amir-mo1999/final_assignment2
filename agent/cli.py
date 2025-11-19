@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from textwrap import shorten
-
 from langchain_core.messages import HumanMessage
+
+from agent.core.telemetry import langfuse_handler
+from textwrap import shorten
 
 from agent.core.graph import build_graph
 from agent.core.state import State
@@ -31,7 +32,8 @@ def _print_context(chunks: list[dict]) -> None:
 
 
 def run_cli() -> None:
-    graph = build_graph()
+    base_graph = build_graph()
+    graph = base_graph.with_config({"callbacks": [langfuse_handler]})
     messages: list = []
 
     print("Codebase QA agent. Type 'exit' to quit.")
