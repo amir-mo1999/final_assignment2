@@ -6,7 +6,6 @@ import re
 from dataclasses import dataclass
 from typing import Iterable, List
 
-from pgvector import Vector
 from psycopg2.extras import RealDictCursor
 
 from agent.core.db import get_connection
@@ -80,42 +79,65 @@ def _format_file_filter_clause(file_filters: Iterable[str]) -> tuple[str, list]:
 
 
 def similarity_search(query: str, limit: int = 5) -> RetrievalResult:
-    """Execute a similarity search over the code embeddings table."""
+    """Execute a similarity search over the code_embeddings table."""
 
     processed = preprocess_query(query)
     if not processed.cleaned:
         return RetrievalResult(
-            [], processed.cleaned, error="I could not understand that query."
+            chunks=[],
+            processed_query=processed.cleaned,
+            error="I could not understand that query.",
         )
 
+    # Build query embedding
     try:
         embedding = get_embeddings().embed_query(processed.cleaned)
     except Exception as exc:  # pragma: no cover - depends on OpenAI
-        return RetrievalResult([], processed.cleaned, error=str(exc))
+        return RetrievalResult(
+            chunks=[],
+            processed_query=processed.cleaned,
+            error=str(exc),
+        )
 
+    # Build filter clause (for file filters etc.)
     clause, params = _format_file_filter_clause(processed.file_filters)
-    sql = (
-        "SELECT file_path, file_name, file_extension, chunk_index, total_chunks, "
-        "token_count, content "
-        "FROM code_embeddings "
-        "WHERE 1=1" + clause + " ORDER BY embedding <=> %s LIMIT %s"
-    )
+    # Ensure clause is a string and includes its own leading whitespace if present
+    clause = clause or ""
+
+    sql = f"""
+        SELECT
+            file_path,
+            file_name,
+            file_extension,
+            chunk_index,
+            total_chunks,
+            token_count,
+            content
+        FROM code_embeddings
+        WHERE 1=1
+        {clause}
+        ORDER BY embedding <=> %s::vector
+        LIMIT %s
+        """
 
     chunks: List[dict] = []
+
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (*params, Vector(embedding), limit))
-            for row in cur.fetchall():
-                chunks.append(
-                    {
-                        "file_path": row["file_path"],
-                        "file_name": row["file_name"],
-                        "file_extension": row["file_extension"],
-                        "chunk_index": row["chunk_index"],
-                        "total_chunks": row["total_chunks"],
-                        "token_count": row["token_count"],
-                        "content": row["content"],
-                    }
-                )
+            cur.execute(sql, (*params, embedding, limit))
+            rows = cur.fetchall()
+
+    for row in rows:
+        chunks.append(
+            {
+                "file_path": row["file_path"],
+                "file_name": row["file_name"],
+                "file_extension": row["file_extension"],
+                "chunk_index": row["chunk_index"],
+                "total_chunks": row["total_chunks"],
+                "token_count": row["token_count"],
+                "content": row["content"],
+            }
+        )
 
     return RetrievalResult(chunks=chunks, processed_query=processed.cleaned)
