@@ -184,6 +184,7 @@ def ingest_python_repository(repo_root: Path) -> dict:
                 _insert_chunk(conn, chunk, vector)
                 inserted_chunks += 1
 
+        conn.commit()
     return {
         "files_processed": processed_files,
         "chunks_inserted": inserted_chunks,
