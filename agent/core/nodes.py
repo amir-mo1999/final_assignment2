@@ -25,20 +25,26 @@ def _last_user_message(messages: List) -> HumanMessage | None:
     return None
 
 
-def retrieval_node(state: State) -> State:
+def guardrail_node(state: State) -> State:
     messages = state.get("messages", [])
     user_message = _last_user_message(messages)
     if not user_message:
-        return {"retrieved_context": [], "guardrail_message": FALLBACK_MESSAGE}
-
+        return {"guardrail_message": FALLBACK_MESSAGE}
     try:
         ensure_supported_query(str(user_message.content))
     except GuardrailViolation as exc:
         return {"retrieved_context": [], "guardrail_message": str(exc)}
 
+    return state
+
+
+def retrieval_node(state: State) -> State:
+    messages = state.get("messages", [])
+    user_message = _last_user_message(messages)
+    if not user_message:
+        return {"guardrail_message": FALLBACK_MESSAGE}
+
     result = similarity_search(str(user_message.content))
-    if result.error:
-        return {"retrieved_context": [], "guardrail_message": result.error}
 
     return {"retrieved_context": result.chunks, "guardrail_message": None}
 

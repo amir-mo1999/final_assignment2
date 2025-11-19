@@ -13,9 +13,7 @@ from langchain_openai import OpenAIEmbeddings
 from agent.config import settings
 
 
-def get_embeddings() -> OpenAIEmbeddings:
-    """Return a cached OpenAI embeddings client."""
-
+def get_embeddings_client() -> OpenAIEmbeddings:
     return OpenAIEmbeddings(
         model=settings.embeddings_model,
         api_key=settings.openai_api_key,
@@ -80,6 +78,7 @@ def _format_file_filter_clause(file_filters: Iterable[str]) -> tuple[str, list]:
 
 def similarity_search(query: str, limit: int = 5) -> RetrievalResult:
     """Execute a similarity search over the code_embeddings table."""
+    embedding_client = get_embeddings_client()
 
     processed = preprocess_query(query)
     if not processed.cleaned:
@@ -91,7 +90,7 @@ def similarity_search(query: str, limit: int = 5) -> RetrievalResult:
 
     # Build query embedding
     try:
-        embedding = get_embeddings().embed_query(processed.cleaned)
+        embedding = embedding_client.embed_query(processed.cleaned)
     except Exception as exc:  # pragma: no cover - depends on OpenAI
         return RetrievalResult(
             chunks=[],

@@ -7,25 +7,17 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
-from langchain_openai import OpenAIEmbeddings
 from psycopg2.extras import RealDictCursor
 
-from agent.config import settings
 import tiktoken
+from agent.core.retrieval import get_embeddings_client
 
 from agent.core.db import get_connection
 
+load_dotenv()
+
 _ENCODER = tiktoken.get_encoding("cl100k_base")
 _EXCLUDED_DIRS = {".git", "__pycache__", ".venv", "venv"}
-
-
-def get_embeddings() -> OpenAIEmbeddings:
-    """Return a cached OpenAI embeddings client."""
-
-    return OpenAIEmbeddings(
-        model=settings.embeddings_model,
-        api_key=settings.openai_api_key,
-    )
 
 
 @dataclass
@@ -55,7 +47,7 @@ def _node_source(content: str, node: ast.AST) -> str:
 
     lines = content.splitlines()
     end_lineno = node.end_lineno or node.lineno
-    snippet = lines[node.lineno - 1: end_lineno]
+    snippet = lines[node.lineno - 1 : end_lineno]
     return "\n".join(snippet).strip()
 
 
@@ -165,7 +157,7 @@ def ingest_python_repository(repo_root: Path) -> dict:
     if not repo_root.exists():
         raise FileNotFoundError(f"Repository path {repo_root} does not exist")
 
-    embedding_client = get_embeddings()
+    embedding_client = get_embeddings_client()
     processed_files = 0
     inserted_chunks = 0
     skipped_chunks = 0
