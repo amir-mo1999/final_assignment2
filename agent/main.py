@@ -1,5 +1,6 @@
-from cli import run_cli
 from dotenv import load_dotenv
+
+from agent.cli import run_cli
 
 load_dotenv()
 
