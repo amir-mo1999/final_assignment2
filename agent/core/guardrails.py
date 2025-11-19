@@ -35,11 +35,8 @@ _BLOCKED_KEYWORDS = {
     "create",
     "generate",
     "build",
-    "implement",
     "draft",
     "modify",
-    "stack overflow",
-    "essay",
     "weather",
 }
 
