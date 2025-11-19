@@ -50,10 +50,12 @@ def _hash_content(content: str) -> str:
 
 
 def _node_source(content: str, node: ast.AST) -> str:
-    if not hasattr(node, "lineno") or not hasattr(node, "end_lineno"):
+    if not isinstance(node, (ast.stmt, ast.expr)):
         return content
+
     lines = content.splitlines()
-    snippet = lines[node.lineno - 1 : node.end_lineno]
+    end_lineno = node.end_lineno or node.lineno
+    snippet = lines[node.lineno - 1: end_lineno]
     return "\n".join(snippet).strip()
 
 
